@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
 [ExecuteAlways]
 public class ArtifactSpawner : MonoBehaviour
@@ -36,11 +37,30 @@ public class ArtifactSpawner : MonoBehaviour
     [Tooltip("Seed used for deterministic placement when Use Seed is enabled.")]
     public int seed;
 
+    [Header("NavMesh / Accessibility")]
+    [Tooltip("If enabled, the spawner will only place artifacts that are reachable by the player via the NavMesh.")]
+    public bool requireNavMeshAccess;
+    [Tooltip("Optional: Assign a Player Transform to test reachability from. If empty, the spawner will try to find a GameObject tagged 'Player'.")]
+    public Transform playerTransform;
+
+    [Header("Path Visualization")]
+    [Tooltip("Show a LineRenderer path from player to each placed artifact when placement succeeds.")]
+    public bool showPathVisualization;
+    public Material pathMaterial;
+    public Color pathColor = Color.green;
+    public float pathWidth = 0.12f;
+    [Tooltip("How far to search for a NavMesh position around a candidate artifact position (meters)")]
+    public float navMeshSampleDistance = 2.0f;
+
     private TerrainData _terrainData;
     private Vector3 _terrainPos;
     private Vector3 _terrainSize;
     // Cache property ID for shader to avoid string lookups
-    private static readonly int _glossinessPropId = Shader.PropertyToID("_Glossiness");
+    private static readonly int GlossinessPropId = Shader.PropertyToID("_Glossiness");
+
+    // Cached nav info to allow toggling / refreshing of path visualizations after spawn
+    private bool _playerNavAvailableCached;
+    private Vector3 _playerNavPositionCached;
 
     void Awake()
     {
@@ -118,6 +138,49 @@ public class ArtifactSpawner : MonoBehaviour
             return;
         }
 
+        // Determine player / nav start if required
+        bool playerNavAvailable = false;
+        Vector3 playerNavPosition = Vector3.zero;
+        GameObject playerGo;
+        if (requireNavMeshAccess)
+        {
+            if (playerTransform != null)
+                playerGo = playerTransform.gameObject;
+            else
+            {
+                playerGo = GameObject.FindWithTag("Player");
+                if (playerGo == null)
+                    playerGo = GameObject.Find("Player");
+            }
+
+            if (playerGo != null)
+            {
+                NavMeshHit playerHit;
+                if (NavMesh.SamplePosition(playerGo.transform.position, out playerHit, navMeshSampleDistance, NavMesh.AllAreas))
+                {
+                    playerNavAvailable = true;
+                    playerNavPosition = playerHit.position;
+                    // cache for later visualization toggles
+                    _playerNavAvailableCached = true;
+                    _playerNavPositionCached = playerHit.position;
+                }
+                else
+                {
+                    Debug.LogWarning("ArtifactSpawner: Player is not positioned on the NavMesh. Nav-based reachability checks will be skipped.");
+                    _playerNavAvailableCached = false;
+                }
+            }
+            else
+            {
+                Debug.LogWarning("ArtifactSpawner: No Player Transform found (tagged 'Player' or named 'Player'); Nav-based reachability checks will be skipped.");
+                _playerNavAvailableCached = false;
+            }
+        }
+        else
+        {
+            _playerNavAvailableCached = false;
+        }
+
         // Optionally clear previous artifacts created by this spawner
         if (clearPreviousOnSpawn)
         {
@@ -165,7 +228,7 @@ public class ArtifactSpawner : MonoBehaviour
                 float height = terrain.SampleHeight(worldPos) + _terrainPos.y;
                 worldPos.y = height;
 
-                // enforce spacing against all placed positions
+                // Enforce spacing against all placed positions
                 bool tooClose = false;
                 foreach (var p in placedPositions)
                 {
@@ -176,6 +239,28 @@ public class ArtifactSpawner : MonoBehaviour
                     }
                 }
                 if (tooClose) continue;
+
+                // If required, verify the candidate is on the NavMesh and reachable from the player
+                if (requireNavMeshAccess && playerNavAvailable)
+                {
+                    NavMeshHit targetHit;
+                    if (!NavMesh.SamplePosition(worldPos, out targetHit, navMeshSampleDistance, NavMesh.AllAreas))
+                    {
+                        // No NavMesh nearby, skip
+                        continue;
+                    }
+
+                    NavMeshPath path = new NavMeshPath();
+                    bool pathFound = NavMesh.CalculatePath(playerNavPosition, targetHit.position, NavMesh.AllAreas, path);
+                    if (!pathFound || path.status != NavMeshPathStatus.PathComplete)
+                    {
+                        // Not reachable, skip this candidate
+                        continue;
+                    }
+
+                    // Use the sampled target position (snapped to NavMesh) as the placement anchor
+                    worldPos = targetHit.position;
+                }
 
                 // Create primitive visual object
                 GameObject go = GameObject.CreatePrimitive(a.primitive);
@@ -198,7 +283,7 @@ public class ArtifactSpawner : MonoBehaviour
                     var mat = new Material(Shader.Find("Standard"));
                     mat.color = a.color;
                     // make coins a bit shiny
-                    mat.SetFloat(_glossinessPropId, 0.6f);
+                    mat.SetFloat(GlossinessPropId, 0.6f);
                     rend.sharedMaterial = mat;
                 }
 
@@ -211,6 +296,17 @@ public class ArtifactSpawner : MonoBehaviour
 
                 // Parent under spawner for organization
                 go.transform.SetParent(this.transform, true);
+
+                // Optionally create a LineRenderer visualization for the path (only if we validated the NavMesh path)
+                if (showPathVisualization && requireNavMeshAccess && playerNavAvailable)
+                {
+                    // Calculate path again for visualization
+                    NavMeshPath vizPath = new NavMeshPath();
+                    if (NavMesh.CalculatePath(playerNavPosition, go.transform.position, NavMesh.AllAreas, vizPath) && vizPath.status == NavMeshPathStatus.PathComplete)
+                    {
+                        CreatePathVisualization(go, vizPath);
+                    }
+                }
 
                 placedPositions.Add(go.transform.position);
                 a.spawned.Add(go);
@@ -225,6 +321,124 @@ public class ArtifactSpawner : MonoBehaviour
 
         // Completed placing all artifact types
         Debug.Log($"ArtifactSpawner: Spawned artifacts. Total types: {artifactTypes.Length}.");
+    }
+
+    [ContextMenu("Refresh Path Visualizations")]
+    public void RefreshPathVisualizations()
+    {
+        // Determine player nav position if needed
+        if (requireNavMeshAccess)
+        {
+            if (playerTransform != null)
+            {
+                NavMeshHit hit;
+                if (NavMesh.SamplePosition(playerTransform.position, out hit, navMeshSampleDistance, NavMesh.AllAreas))
+                {
+                    _playerNavAvailableCached = true;
+                    _playerNavPositionCached = hit.position;
+                }
+                else
+                {
+                    _playerNavAvailableCached = false;
+                }
+            }
+            else
+            {
+                var player = GameObject.FindWithTag("Player");
+                if (player == null) player = GameObject.Find("Player");
+                if (player != null)
+                {
+                    NavMeshHit hit;
+                    if (NavMesh.SamplePosition(player.transform.position, out hit, navMeshSampleDistance, NavMesh.AllAreas))
+                    {
+                        _playerNavAvailableCached = true;
+                        _playerNavPositionCached = hit.position;
+                    }
+                    else _playerNavAvailableCached = false;
+                }
+                else _playerNavAvailableCached = false;
+            }
+        }
+        else
+        {
+            _playerNavAvailableCached = false;
+        }
+
+        // Iterate spawned artifacts and add/remove/update visualization depending on showPathVisualization
+        foreach (var a in artifactTypes)
+        {
+            if (a == null || a.spawned == null) continue;
+            foreach (var go in a.spawned)
+            {
+                if (go == null) continue;
+                // find existing PathViz child
+                Transform existing = go.transform.Find("PathViz");
+                if (showPathVisualization && _playerNavAvailableCached)
+                {
+                    // compute path and either create or update
+                    NavMeshPath path = new NavMeshPath();
+                    if (NavMesh.CalculatePath(_playerNavPositionCached, go.transform.position, NavMesh.AllAreas, path) && path.status == NavMeshPathStatus.PathComplete)
+                    {
+                        // remove old
+                        if (existing != null) Object.DestroyImmediate(existing.gameObject);
+                        CreatePathVisualization(go, path);
+                    }
+                    else
+                    {
+                        // remove any existing visualization if path no longer valid
+                        if (existing != null) Object.DestroyImmediate(existing.gameObject);
+                    }
+                }
+                else
+                {
+                    if (existing != null) Object.DestroyImmediate(existing.gameObject);
+                }
+            }
+        }
+    }
+
+    [ContextMenu("Clear Path Visualizations")] 
+    public void ClearPathVisualizations()
+    {
+        foreach (var a in artifactTypes)
+        {
+            if (a == null || a.spawned == null) continue;
+            foreach (var go in a.spawned)
+            {
+                if (go == null) continue;
+                Transform existing = go.transform.Find("PathViz");
+                if (existing != null)
+                {
+                    Object.DestroyImmediate(existing.gameObject);
+                }
+            }
+        }
+    }
+
+    // Create a LineRenderer on the artifact to visualize the nav path (childed to artifact)
+    void CreatePathVisualization(GameObject artifact, NavMeshPath path)
+    {
+        if (path == null || path.corners == null || path.corners.Length == 0) return;
+
+        // Ensure any existing visualization is removed first
+        var existing = artifact.transform.Find("PathViz");
+        if (existing != null)
+        {
+            Object.DestroyImmediate(existing.gameObject);
+        }
+
+        GameObject lrObj = new GameObject("PathViz");
+        lrObj.transform.SetParent(artifact.transform, false);
+        var lr = lrObj.AddComponent<LineRenderer>();
+        lr.positionCount = path.corners.Length;
+        lr.SetPositions(path.corners);
+        lr.widthMultiplier = Mathf.Max(0.01f, pathWidth);
+        lr.material = pathMaterial != null ? pathMaterial : new Material(Shader.Find("Sprites/Default"));
+        lr.startColor = pathColor;
+        lr.endColor = pathColor;
+        lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        lr.receiveShadows = false;
+        lr.numCapVertices = 2;
     }
 
     // Removes any spawned artifact GameObjects created by this spawner
