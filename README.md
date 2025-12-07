@@ -4,6 +4,14 @@ This Unity project demonstrates procedural terrain generation with beautiful vis
 
 ## Features
 
+### 🎚️ Terrain and Object Scaling System (NEW!)
+- **Scale Management**: Easy-to-use system for adjusting terrain dimensions
+- **Relative Scaling**: Ensures proper scale relationship between terrain, player, and artifacts
+- **Multiple Presets**: Small (100x100), Medium (200x200), Large (500x500) configurations
+- **Editor Tool**: Visual setup window at Tools → Setup Terrain Scaling
+- **Auto-Coordination**: Automatically updates all dependent systems when scale changes
+- **Fixes "oversized terrain" issue** where players take too long to traverse the world
+
 ### 🏔️ Dynamic Terrain Texturing
 - **Height-based texturing**: Grass at low elevations, dirt in mid-ranges, snow on peaks
 - **Slope-based texturing**: Realistic rock/cliff textures on steep slopes
@@ -27,6 +35,15 @@ This Unity project demonstrates procedural terrain generation with beautiful vis
 - Customizable colors and effects
 
 ## Quick Start
+
+### Scaling Terrain and Objects (Solving Oversized Terrain Issue)
+If your terrain is too large and takes forever to traverse:
+1. Open Unity Editor
+2. Go to **Tools → Setup Terrain Scaling** in the menu bar
+3. Choose a preset or customize terrain dimensions
+4. Click "Apply All & Setup Scene"
+5. Regenerate terrain and respawn artifacts
+6. See `TERRAIN_SCALING_GUIDE.md` for detailed instructions
 
 ### Option 1: Use the Setup Tool (Easiest)
 1. Open your scene in Unity
@@ -97,6 +114,7 @@ Edit `PlayerVisualEnhancer` component:
 ## Documentation
 
 For detailed information, see:
+- `TERRAIN_SCALING_GUIDE.md` - **NEW!** Complete guide to fixing oversized terrain and setting proper scale
 - `Assets/TERRAIN_ENHANCEMENT_GUIDE.md` - Complete feature documentation
 - Component tooltips in Unity Inspector
 - Context menu options (right-click components)

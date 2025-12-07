@@ -17,8 +17,21 @@ public class PlayerVisualEnhancer : MonoBehaviour
     [Range(0f, 1f)]
     public float glowIntensity = 0.3f;
     
+    [Header("Player Scale Settings")]
+    [Tooltip("Player scale relative to terrain. 1.0 = normal human size (~2 units tall)")]
+    [Range(0.5f, 3.0f)]
+    public float playerScale = 1.0f;
+    
+    [Tooltip("Apply scale on start")]
+    public bool applyScaleOnStart = false;
+    
     void Start()
     {
+        if (applyScaleOnStart)
+        {
+            ApplyPlayerScale();
+        }
+        
         if (autoEnhanceOnStart)
         {
             EnhancePlayerVisuals();
@@ -53,6 +66,13 @@ public class PlayerVisualEnhancer : MonoBehaviour
             ApplyEnhancedMaterial(rend);
             Debug.Log($"PlayerVisualEnhancer: Enhanced visuals for '{gameObject.name}'");
         }
+    }
+    
+    [ContextMenu("Apply Player Scale")]
+    public void ApplyPlayerScale()
+    {
+        transform.localScale = Vector3.one * playerScale;
+        Debug.Log($"PlayerVisualEnhancer: Applied scale {playerScale} to '{gameObject.name}'");
     }
     
     // Helper method to safely destroy objects in both edit and play mode
