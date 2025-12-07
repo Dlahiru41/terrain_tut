@@ -125,13 +125,11 @@ public class TerrainScaleManager : MonoBehaviour
         }
 
         // Recommend player to be about 1.8 units tall (roughly human height)
-        // and proportional to terrain size
         float recommendedPlayerHeight = 1.8f;
-        float terrainToPlayerRatio = terrainWidth / 100f; // Base ratio on 100 unit terrain
 
         Debug.Log($"{nameof(TerrainScaleManager)}: Recommended player height: {recommendedPlayerHeight} units");
         Debug.Log($"{nameof(TerrainScaleManager)}: Terrain width: {terrainWidth}, Length: {terrainLength}, Height: {terrainHeight}");
-        Debug.Log($"{nameof(TerrainScaleManager)}: For best results, ensure player and artifacts are scaled proportionally.");
+        Debug.Log($"{nameof(TerrainScaleManager)}: For best results, ensure player and artifacts are scaled proportionally to terrain size.");
     }
 
     [ContextMenu("Reset To Default Game Scale")]

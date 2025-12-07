@@ -71,7 +71,9 @@ public class TerrainScaleSetupWindow : EditorWindow
         // Get player scale if available
         if (player != null)
         {
-            playerScale = player.transform.localScale.y;
+            // Use the maximum scale component to handle non-uniform scaling
+            Vector3 scale = player.transform.localScale;
+            playerScale = Mathf.Max(scale.x, scale.y, scale.z);
         }
     }
 
@@ -161,7 +163,8 @@ public class TerrainScaleSetupWindow : EditorWindow
         EditorGUILayout.LabelField("Current Player Scale:", EditorStyles.miniLabel);
         if (player != null)
         {
-            EditorGUILayout.LabelField($"  Y Scale: {player.transform.localScale.y}");
+            Vector3 scale = player.transform.localScale;
+            EditorGUILayout.LabelField($"  Scale: X={scale.x:F2}, Y={scale.y:F2}, Z={scale.z:F2}");
         }
         else
         {
