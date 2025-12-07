@@ -1,0 +1,94 @@
+# Unity generated files
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+Assets/AssetStoreTools*
+UserSettings/
+MemoryCaptures/
+sysinfo.txt
+
+# Crash logs
+crash.log
+
+# Asset import settings and caches
+ExportedObj/
+*.unitypackage
+*.unityproj
+*.prefab.meta
+
+# Auto-generated VS/Mono files
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Rider/IDE
+.idea/
+*.sln.iml
+*.Rider/
+*.Rider*/
+
+# VSCode
+.vscode/
+
+# OS generated
+.DS_Store
+._*
+thumbs.db
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Package manager
+Packages/packages-lock.json
+Packages/**/*.lock.json
+
+# Unity package cache and plugin caches
+PackageCache/
+Cache/
+
+# Logs
+Logs/
+*.log
+
+# User-specific editor preferences
+*/.vs/
+
+# Unity Collaborate
+.collab/
+
+# Temporary or local-only files
+*.swp
+*.swo
+
+# LFS (if you use Git LFS for large binary assets, keep these patterns)
+# Uncomment if using LFS and you want to track large assets differently
+# /Assets/**/*.png
+# /Assets/**/*.jpg
+# /Assets/**/*.tga
+
+# Ignore generated build artifacts from other tools
+*.apk
+*.aab
+*.xcodeproj
+*.xcworkspace
+*.xcuserstate
+
+# Prevent accidentally committing local test scenes or backups (optional)
+# Uncomment to ignore backup scenes if your workflow generates them
+# __Backupscenes/
+
+# End of file
+
