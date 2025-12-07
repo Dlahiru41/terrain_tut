@@ -284,7 +284,7 @@ public class ArtifactSpawner : MonoBehaviour
                     mat.color = a.color;
                     
                     // Enhance materials based on artifact type
-                    switch (i)
+                   switch (typeIndex)
                     {
                         case 0: // Health Potion - glowing red
                             mat.SetFloat(GlossinessPropId, 0.9f);
