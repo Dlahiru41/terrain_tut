@@ -55,6 +55,17 @@ public class PlayerVisualEnhancer : MonoBehaviour
         }
     }
     
+    // Helper method to safely destroy objects in both edit and play mode
+    void SafeDestroy(Object obj)
+    {
+        if (obj == null) return;
+        
+        if (Application.isPlaying)
+            Destroy(obj);
+        else
+            DestroyImmediate(obj);
+    }
+    
     GameObject CreatePlayerVisual()
     {
         // Create a capsule to represent the player if no visual exists
@@ -67,13 +78,7 @@ public class PlayerVisualEnhancer : MonoBehaviour
         
         // Remove the collider from the visual (player should have its own collider)
         Collider col = visual.GetComponent<Collider>();
-        if (col != null)
-        {
-            if (Application.isPlaying)
-                Destroy(col);
-            else
-                DestroyImmediate(col);
-        }
+        SafeDestroy(col);
         
         return visual;
     }
@@ -115,13 +120,7 @@ public class PlayerVisualEnhancer : MonoBehaviour
             
             // Remove collider
             Collider col = indicatorObj.GetComponent<Collider>();
-            if (col != null)
-            {
-                if (Application.isPlaying)
-                    Destroy(col);
-                else
-                    DestroyImmediate(col);
-            }
+            SafeDestroy(col);
             
             // Make it glow
             Renderer rend = indicatorObj.GetComponent<Renderer>();

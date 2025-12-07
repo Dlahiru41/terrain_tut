@@ -20,10 +20,39 @@ public class VisualEnhancementDemo : MonoBehaviour
     
     private bool _initialized = false;
     
+    // Cached GUI styles to avoid allocations
+    private GUIStyle _boxStyle;
+    private GUIStyle _labelStyle;
+    private GUIStyle _titleStyle;
+    private GUIStyle _boldLabelStyle;
+    private bool _stylesInitialized = false;
+    
     void Start()
     {
         AutoFindComponents();
         LogSetupStatus();
+        InitializeGUIStyles();
+    }
+    
+    void InitializeGUIStyles()
+    {
+        _boxStyle = new GUIStyle(GUI.skin.box);
+        _boxStyle.fontSize = 14;
+        _boxStyle.padding = new RectOffset(10, 10, 10, 10);
+        _boxStyle.normal.textColor = Color.white;
+        
+        _labelStyle = new GUIStyle(GUI.skin.label);
+        _labelStyle.fontSize = 12;
+        _labelStyle.normal.textColor = Color.white;
+        
+        _titleStyle = new GUIStyle(_labelStyle);
+        _titleStyle.fontSize = 16;
+        _titleStyle.fontStyle = FontStyle.Bold;
+        
+        _boldLabelStyle = new GUIStyle(_labelStyle);
+        _boldLabelStyle.fontStyle = FontStyle.Bold;
+        
+        _stylesInitialized = true;
     }
     
     void AutoFindComponents()
@@ -149,39 +178,29 @@ public class VisualEnhancementDemo : MonoBehaviour
     
     void OnGUI()
     {
-        if (!showInstructions) return;
-        
-        // Create a styled box for instructions
-        GUIStyle boxStyle = new GUIStyle(GUI.skin.box);
-        boxStyle.fontSize = 14;
-        boxStyle.padding = new RectOffset(10, 10, 10, 10);
-        boxStyle.normal.textColor = Color.white;
-        
-        GUIStyle labelStyle = new GUIStyle(GUI.skin.label);
-        labelStyle.fontSize = 12;
-        labelStyle.normal.textColor = Color.white;
+        if (!showInstructions || !_stylesInitialized) return;
         
         // Position in top-left corner
         float width = 300f;
         float height = 200f;
         Rect boxRect = new Rect(10, 10, width, height);
         
-        GUI.Box(boxRect, "", boxStyle);
+        GUI.Box(boxRect, "", _boxStyle);
         
         GUILayout.BeginArea(new Rect(20, 20, width - 20, height - 20));
         
-        GUILayout.Label("Visual Enhancement Demo", new GUIStyle(labelStyle) { fontSize = 16, fontStyle = FontStyle.Bold });
+        GUILayout.Label("Visual Enhancement Demo", _titleStyle);
         GUILayout.Space(10);
         
-        GUILayout.Label("Controls:", new GUIStyle(labelStyle) { fontStyle = FontStyle.Bold });
-        GUILayout.Label("R - Regenerate Terrain", labelStyle);
-        GUILayout.Label("T - Apply Textures", labelStyle);
-        GUILayout.Label("A - Respawn Artifacts", labelStyle);
-        GUILayout.Label("P - Enhance Player", labelStyle);
-        GUILayout.Label("H - Toggle Instructions", labelStyle);
+        GUILayout.Label("Controls:", _boldLabelStyle);
+        GUILayout.Label("R - Regenerate Terrain", _labelStyle);
+        GUILayout.Label("T - Apply Textures", _labelStyle);
+        GUILayout.Label("A - Respawn Artifacts", _labelStyle);
+        GUILayout.Label("P - Enhance Player", _labelStyle);
+        GUILayout.Label("H - Toggle Instructions", _labelStyle);
         
         GUILayout.Space(10);
-        GUILayout.Label($"Status: {(_initialized ? "Ready" : "Setup Required")}", labelStyle);
+        GUILayout.Label($"Status: {(_initialized ? "Ready" : "Setup Required")}", _labelStyle);
         
         GUILayout.EndArea();
     }

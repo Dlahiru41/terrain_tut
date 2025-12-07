@@ -112,7 +112,8 @@ public class TerrainTextureGenerator : MonoBehaviour
         
         // Use Perlin noise to create natural-looking variation
         float scale = 0.15f; // Noise scale for texture detail
-        float offset = Random.Range(0f, 1000f); // Random offset for variation
+        // Use deterministic offset based on color to ensure consistency
+        float offset = color.r * 1000f + color.g * 500f + color.b * 250f;
         
         for (int y = 0; y < size; y++)
         {
@@ -158,6 +159,11 @@ public class TerrainTextureGenerator : MonoBehaviour
     {
         int alphamapWidth = _terrainData.alphamapWidth;
         int alphamapHeight = _terrainData.alphamapHeight;
+        int heightmapResolution = _terrainData.heightmapResolution;
+        
+        // Cache the heightmap data for better performance
+        float[,] heights = _terrainData.GetHeights(0, 0, heightmapResolution, heightmapResolution);
+        float terrainHeight = _terrainData.size.y;
         
         float[,,] splatmapData = new float[alphamapWidth, alphamapHeight, 4];
         
@@ -169,11 +175,10 @@ public class TerrainTextureGenerator : MonoBehaviour
                 float xNorm = (float)x / (alphamapWidth - 1);
                 float yNorm = (float)y / (alphamapHeight - 1);
                 
-                // Get height at this point (normalized 0-1)
-                float height = _terrainData.GetHeight(
-                    Mathf.RoundToInt(xNorm * (_terrainData.heightmapResolution - 1)),
-                    Mathf.RoundToInt(yNorm * (_terrainData.heightmapResolution - 1))
-                ) / _terrainData.size.y;
+                // Sample height from cached heightmap (normalized 0-1)
+                int heightX = Mathf.RoundToInt(xNorm * (heightmapResolution - 1));
+                int heightY = Mathf.RoundToInt(yNorm * (heightmapResolution - 1));
+                float height = heights[heightY, heightX];
                 
                 // Get steepness at this point
                 float steepness = _terrainData.GetSteepness(xNorm, yNorm);
