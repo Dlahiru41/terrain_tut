@@ -276,14 +276,49 @@ public class ArtifactSpawner : MonoBehaviour
                 float rotY = (prng != null) ? (float)(prng.NextDouble() * 360.0) : Random.Range(0f, 360f);
                 go.transform.rotation = Quaternion.Euler(0f, rotY, 0f);
 
-                // Color material (create simple material instance)
+                // Color material (create enhanced material instance with better visuals)
                 var rend = go.GetComponent<Renderer>();
                 if (rend != null)
                 {
                     var mat = new Material(Shader.Find("Standard"));
                     mat.color = a.color;
-                    // make coins a bit shiny
-                    mat.SetFloat(GlossinessPropId, 0.6f);
+                    
+                    // Enhance materials based on artifact type
+                    switch (i)
+                    {
+                        case 0: // Health Potion - glowing red
+                            mat.SetFloat(GlossinessPropId, 0.9f);
+                            mat.EnableKeyword("_EMISSION");
+                            mat.SetColor("_EmissionColor", a.color * 0.3f);
+                            break;
+                        case 1: // Coin - shiny metallic gold
+                            mat.SetFloat(GlossinessPropId, 0.95f);
+                            mat.SetFloat("_Metallic", 0.8f);
+                            mat.EnableKeyword("_EMISSION");
+                            mat.SetColor("_EmissionColor", a.color * 0.2f);
+                            break;
+                        case 2: // Weapon - metallic
+                            mat.SetFloat(GlossinessPropId, 0.7f);
+                            mat.SetFloat("_Metallic", 0.9f);
+                            break;
+                        case 3: // Magic Pickup - glowing purple
+                            mat.SetFloat(GlossinessPropId, 0.85f);
+                            mat.EnableKeyword("_EMISSION");
+                            mat.SetColor("_EmissionColor", a.color * 0.5f);
+                            break;
+                        case 4: // Shield - semi-metallic
+                            mat.SetFloat(GlossinessPropId, 0.7f);
+                            mat.SetFloat("_Metallic", 0.6f);
+                            break;
+                        case 5: // Trap - dull/rough
+                            mat.SetFloat(GlossinessPropId, 0.2f);
+                            mat.SetFloat("_Metallic", 0.1f);
+                            break;
+                        default:
+                            mat.SetFloat(GlossinessPropId, 0.6f);
+                            break;
+                    }
+                    
                     rend.sharedMaterial = mat;
                 }
 

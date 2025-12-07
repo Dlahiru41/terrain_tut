@@ -31,6 +31,10 @@ public class ImprovedTerrainGenerator : MonoBehaviour
     [Header("Generation Triggers")]
     public bool autoGenerateOnStart = true;
     public KeyCode regenerateKey = KeyCode.R;
+    
+    [Header("Texture Application")]
+    [Tooltip("Automatically apply textures after generating terrain")]
+    public bool applyTexturesAfterGeneration = true;
 
     void Awake()
     {
@@ -111,6 +115,16 @@ public class ImprovedTerrainGenerator : MonoBehaviour
         }
 
         _terrainData.SetHeights(0, 0, heights);
+        
+        // Automatically apply textures if enabled
+        if (applyTexturesAfterGeneration)
+        {
+            TerrainTextureGenerator textureGen = GetComponent<TerrainTextureGenerator>();
+            if (textureGen != null)
+            {
+                textureGen.ApplyTerrainTextures();
+            }
+        }
     }
 
     float EvaluateHeight(int x, int y, int mapWidth, int mapHeight, float seedOffsetX, float seedOffsetY)
