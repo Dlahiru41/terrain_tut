@@ -107,12 +107,12 @@ public class ArtifactSpawner : MonoBehaviour
             {
                 switch (i)
                 {
-                    case 0: a.typeName = "Health Potion"; a.primitive = PrimitiveType.Sphere; a.color = Color.red; a.scale = Vector3.one * 0.4f; break;
-                    case 1: a.typeName = "Coin"; a.primitive = PrimitiveType.Cylinder; a.color = Color.yellow; a.scale = new Vector3(0.2f, 0.02f, 0.2f); break;
-                    case 2: a.typeName = "Weapon"; a.primitive = PrimitiveType.Capsule; a.color = Color.gray; a.scale = new Vector3(0.2f, 0.8f, 0.2f); break;
-                    case 3: a.typeName = "Magic Pickup"; a.primitive = PrimitiveType.Sphere; a.color = new Color(0.5f, 0f, 1f); a.scale = Vector3.one * 0.5f; break;
-                    case 4: a.typeName = "Shield"; a.primitive = PrimitiveType.Cylinder; a.color = new Color(0.6f, 0.6f, 1f); a.scale = new Vector3(0.6f, 0.05f, 0.6f); break;
-                    case 5: a.typeName = "Trap"; a.primitive = PrimitiveType.Cube; a.color = new Color(0.3f, 0.15f, 0.05f); a.scale = new Vector3(0.6f, 0.2f, 0.6f); break;
+                    case 0: a.typeName = "Health Potion"; a.primitive = PrimitiveType.Sphere; a.color = new Color(1f, 0.1f, 0.1f); a.scale = Vector3.one * 0.4f; break;
+                    case 1: a.typeName = "Coin"; a.primitive = PrimitiveType.Cylinder; a.color = new Color(1f, 0.84f, 0f); a.scale = new Vector3(0.2f, 0.02f, 0.2f); break;
+                    case 2: a.typeName = "Weapon"; a.primitive = PrimitiveType.Capsule; a.color = new Color(0.7f, 0.7f, 0.8f); a.scale = new Vector3(0.2f, 0.8f, 0.2f); break;
+                    case 3: a.typeName = "Magic Pickup"; a.primitive = PrimitiveType.Sphere; a.color = new Color(0.7f, 0.2f, 1f); a.scale = Vector3.one * 0.5f; break;
+                    case 4: a.typeName = "Shield"; a.primitive = PrimitiveType.Cylinder; a.color = new Color(0.4f, 0.6f, 1f); a.scale = new Vector3(0.6f, 0.05f, 0.6f); break;
+                    case 5: a.typeName = "Trap"; a.primitive = PrimitiveType.Cube; a.color = new Color(0.4f, 0.2f, 0.1f); a.scale = new Vector3(0.6f, 0.2f, 0.6f); break;
                 }
             }
 
@@ -276,14 +276,49 @@ public class ArtifactSpawner : MonoBehaviour
                 float rotY = (prng != null) ? (float)(prng.NextDouble() * 360.0) : Random.Range(0f, 360f);
                 go.transform.rotation = Quaternion.Euler(0f, rotY, 0f);
 
-                // Color material (create simple material instance)
+                // Color material (create enhanced material instance with better visuals)
                 var rend = go.GetComponent<Renderer>();
                 if (rend != null)
                 {
                     var mat = new Material(Shader.Find("Standard"));
                     mat.color = a.color;
-                    // make coins a bit shiny
-                    mat.SetFloat(GlossinessPropId, 0.6f);
+                    
+                    // Enhance materials based on artifact type
+                    switch (i)
+                    {
+                        case 0: // Health Potion - glowing red
+                            mat.SetFloat(GlossinessPropId, 0.9f);
+                            mat.EnableKeyword("_EMISSION");
+                            mat.SetColor("_EmissionColor", a.color * 0.3f);
+                            break;
+                        case 1: // Coin - shiny metallic gold
+                            mat.SetFloat(GlossinessPropId, 0.95f);
+                            mat.SetFloat("_Metallic", 0.8f);
+                            mat.EnableKeyword("_EMISSION");
+                            mat.SetColor("_EmissionColor", a.color * 0.2f);
+                            break;
+                        case 2: // Weapon - metallic
+                            mat.SetFloat(GlossinessPropId, 0.7f);
+                            mat.SetFloat("_Metallic", 0.9f);
+                            break;
+                        case 3: // Magic Pickup - glowing purple
+                            mat.SetFloat(GlossinessPropId, 0.85f);
+                            mat.EnableKeyword("_EMISSION");
+                            mat.SetColor("_EmissionColor", a.color * 0.5f);
+                            break;
+                        case 4: // Shield - semi-metallic
+                            mat.SetFloat(GlossinessPropId, 0.7f);
+                            mat.SetFloat("_Metallic", 0.6f);
+                            break;
+                        case 5: // Trap - dull/rough
+                            mat.SetFloat(GlossinessPropId, 0.2f);
+                            mat.SetFloat("_Metallic", 0.1f);
+                            break;
+                        default:
+                            mat.SetFloat(GlossinessPropId, 0.6f);
+                            break;
+                    }
+                    
                     rend.sharedMaterial = mat;
                 }
 
