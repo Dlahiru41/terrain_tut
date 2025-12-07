@@ -107,12 +107,12 @@ public class ArtifactSpawner : MonoBehaviour
             {
                 switch (i)
                 {
-                    case 0: a.typeName = "Health Potion"; a.primitive = PrimitiveType.Sphere; a.color = Color.red; a.scale = Vector3.one * 0.4f; break;
-                    case 1: a.typeName = "Coin"; a.primitive = PrimitiveType.Cylinder; a.color = Color.yellow; a.scale = new Vector3(0.2f, 0.02f, 0.2f); break;
-                    case 2: a.typeName = "Weapon"; a.primitive = PrimitiveType.Capsule; a.color = Color.gray; a.scale = new Vector3(0.2f, 0.8f, 0.2f); break;
-                    case 3: a.typeName = "Magic Pickup"; a.primitive = PrimitiveType.Sphere; a.color = new Color(0.5f, 0f, 1f); a.scale = Vector3.one * 0.5f; break;
-                    case 4: a.typeName = "Shield"; a.primitive = PrimitiveType.Cylinder; a.color = new Color(0.6f, 0.6f, 1f); a.scale = new Vector3(0.6f, 0.05f, 0.6f); break;
-                    case 5: a.typeName = "Trap"; a.primitive = PrimitiveType.Cube; a.color = new Color(0.3f, 0.15f, 0.05f); a.scale = new Vector3(0.6f, 0.2f, 0.6f); break;
+                    case 0: a.typeName = "Health Potion"; a.primitive = PrimitiveType.Sphere; a.color = new Color(1f, 0.1f, 0.1f); a.scale = Vector3.one * 0.4f; break;
+                    case 1: a.typeName = "Coin"; a.primitive = PrimitiveType.Cylinder; a.color = new Color(1f, 0.84f, 0f); a.scale = new Vector3(0.2f, 0.02f, 0.2f); break;
+                    case 2: a.typeName = "Weapon"; a.primitive = PrimitiveType.Capsule; a.color = new Color(0.7f, 0.7f, 0.8f); a.scale = new Vector3(0.2f, 0.8f, 0.2f); break;
+                    case 3: a.typeName = "Magic Pickup"; a.primitive = PrimitiveType.Sphere; a.color = new Color(0.7f, 0.2f, 1f); a.scale = Vector3.one * 0.5f; break;
+                    case 4: a.typeName = "Shield"; a.primitive = PrimitiveType.Cylinder; a.color = new Color(0.4f, 0.6f, 1f); a.scale = new Vector3(0.6f, 0.05f, 0.6f); break;
+                    case 5: a.typeName = "Trap"; a.primitive = PrimitiveType.Cube; a.color = new Color(0.4f, 0.2f, 0.1f); a.scale = new Vector3(0.6f, 0.2f, 0.6f); break;
                 }
             }
 

@@ -105,24 +105,52 @@ public class TerrainTextureGenerator : MonoBehaviour
     
     Texture2D CreateColorTexture(Color color, string name)
     {
-        // Create a simple colored texture
-        Texture2D tex = new Texture2D(64, 64, TextureFormat.RGB24, false);
-        Color[] pixels = new Color[64 * 64];
+        // Create a more interesting textured pattern
+        int size = 128; // Larger texture for better quality
+        Texture2D tex = new Texture2D(size, size, TextureFormat.RGB24, true); // Enable mipmaps
+        Color[] pixels = new Color[size * size];
         
-        // Add some variation to make it look more natural
-        for (int i = 0; i < pixels.Length; i++)
+        // Use Perlin noise to create natural-looking variation
+        float scale = 0.15f; // Noise scale for texture detail
+        float offset = Random.Range(0f, 1000f); // Random offset for variation
+        
+        for (int y = 0; y < size; y++)
         {
-            float variation = Random.Range(-0.1f, 0.1f);
-            pixels[i] = new Color(
-                Mathf.Clamp01(color.r + variation),
-                Mathf.Clamp01(color.g + variation),
-                Mathf.Clamp01(color.b + variation)
-            );
+            for (int x = 0; x < size; x++)
+            {
+                int index = y * size + x;
+                
+                // Generate Perlin noise for this pixel
+                float noiseValue = Mathf.PerlinNoise(
+                    (x + offset) * scale,
+                    (y + offset) * scale
+                );
+                
+                // Add more complex noise by combining multiple octaves
+                float detailNoise = Mathf.PerlinNoise(
+                    (x + offset) * scale * 3f,
+                    (y + offset) * scale * 3f
+                ) * 0.3f;
+                
+                // Combine noise values for natural variation
+                float totalVariation = (noiseValue * 0.7f + detailNoise) - 0.5f;
+                totalVariation *= 0.25f; // Scale down the variation
+                
+                // Apply variation to the base color
+                pixels[index] = new Color(
+                    Mathf.Clamp01(color.r + totalVariation),
+                    Mathf.Clamp01(color.g + totalVariation),
+                    Mathf.Clamp01(color.b + totalVariation)
+                );
+            }
         }
         
         tex.SetPixels(pixels);
         tex.Apply();
         tex.name = name;
+        tex.wrapMode = TextureWrapMode.Repeat;
+        tex.filterMode = FilterMode.Bilinear;
+        
         return tex;
     }
     
