@@ -75,7 +75,7 @@ public class ArtifactSpawner : MonoBehaviour
         EnsureDefaults();
     }
 
-    void CacheTerrain()
+    public void CacheTerrain()
     {
         if (terrain == null)
             terrain = GetComponent<Terrain>();
