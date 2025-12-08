@@ -15,6 +15,18 @@ public class ArtifactSpawner : MonoBehaviour
         public int minCount = 3;      // required minimum to spawn
         public int maxCount = 6;      // optional maximum
         public float minSpacing = 1f; // minimum distance between artifacts of any type
+        
+        [Header("Spawn Constraints")]
+        [Tooltip("Minimum terrain height (0-1) for this artifact type. -1 = no minimum.")]
+        [Range(-1f, 1f)]
+        public float minHeight = -1f;
+        [Tooltip("Maximum terrain height (0-1) for this artifact type. -1 = no maximum.")]
+        [Range(-1f, 1f)]
+        public float maxHeight = -1f;
+        [Tooltip("Maximum slope angle (degrees) for this artifact type. -1 = use global setting.")]
+        [Range(-1f, 90f)]
+        public float maxSlope = -1f;
+        
         [HideInInspector] public List<GameObject> spawned = new List<GameObject>();
     }
 
@@ -52,10 +64,13 @@ public class ArtifactSpawner : MonoBehaviour
     [Tooltip("Show a LineRenderer path from player to each placed artifact when placement succeeds.")]
     public bool showPathVisualization;
     public Material pathMaterial;
-    public Color pathColor = Color.green;
+    public Color successPathColor = Color.green;
+    public Color failedPathColor = Color.red;
     public float pathWidth = 0.12f;
     [Tooltip("How far to search for a NavMesh position around a candidate artifact position (meters)")]
     public float navMeshSampleDistance = 2.0f;
+    [Tooltip("Keyboard key to toggle path visualization on/off")]
+    public KeyCode togglePathVisualizationKey = KeyCode.P;
 
     private TerrainData _terrainData;
     private Vector3 _terrainPos;
@@ -71,6 +86,19 @@ public class ArtifactSpawner : MonoBehaviour
     {
         CacheTerrain();
         EnsureDefaults();
+    }
+
+    void Update()
+    {
+        if (!Application.isPlaying) return;
+        
+        // Toggle path visualization with keyboard shortcut
+        if (Input.GetKeyDown(togglePathVisualizationKey))
+        {
+            showPathVisualization = !showPathVisualization;
+            RefreshPathVisualizations();
+            Debug.Log($"ArtifactSpawner: Path visualization toggled {(showPathVisualization ? "ON" : "OFF")}");
+        }
     }
 
     void OnValidate()
@@ -112,12 +140,60 @@ public class ArtifactSpawner : MonoBehaviour
             {
                 switch (i)
                 {
-                    case 0: a.typeName = "Health Potion"; a.primitive = PrimitiveType.Sphere; a.color = new Color(1f, 0.1f, 0.1f); a.scale = Vector3.one * 0.4f; break;
-                    case 1: a.typeName = "Coin"; a.primitive = PrimitiveType.Cylinder; a.color = new Color(1f, 0.84f, 0f); a.scale = new Vector3(0.2f, 0.02f, 0.2f); break;
-                    case 2: a.typeName = "Weapon"; a.primitive = PrimitiveType.Capsule; a.color = new Color(0.7f, 0.7f, 0.8f); a.scale = new Vector3(0.2f, 0.8f, 0.2f); break;
-                    case 3: a.typeName = "Magic Pickup"; a.primitive = PrimitiveType.Sphere; a.color = new Color(0.7f, 0.2f, 1f); a.scale = Vector3.one * 0.5f; break;
-                    case 4: a.typeName = "Shield"; a.primitive = PrimitiveType.Cylinder; a.color = new Color(0.4f, 0.6f, 1f); a.scale = new Vector3(0.6f, 0.05f, 0.6f); break;
-                    case 5: a.typeName = "Trap"; a.primitive = PrimitiveType.Cube; a.color = new Color(0.4f, 0.2f, 0.1f); a.scale = new Vector3(0.6f, 0.2f, 0.6f); break;
+                    case 0: // Health Potion - gentle slopes, mid-low elevation
+                        a.typeName = "Health Potion"; 
+                        a.primitive = PrimitiveType.Sphere; 
+                        a.color = new Color(1f, 0.1f, 0.1f); 
+                        a.scale = Vector3.one * 0.4f;
+                        a.minHeight = 0.1f;
+                        a.maxHeight = 0.6f;
+                        a.maxSlope = 30f; // gentle slopes only
+                        break;
+                    case 1: // Coin - flat terrain, low-mid elevation
+                        a.typeName = "Coin"; 
+                        a.primitive = PrimitiveType.Cylinder; 
+                        a.color = new Color(1f, 0.84f, 0f); 
+                        a.scale = new Vector3(0.2f, 0.02f, 0.2f);
+                        a.minHeight = 0.05f;
+                        a.maxHeight = 0.5f;
+                        a.maxSlope = 20f; // very flat areas
+                        break;
+                    case 2: // Weapon - any elevation, moderate slopes
+                        a.typeName = "Weapon"; 
+                        a.primitive = PrimitiveType.Capsule; 
+                        a.color = new Color(0.7f, 0.7f, 0.8f); 
+                        a.scale = new Vector3(0.2f, 0.8f, 0.2f);
+                        a.minHeight = -1f; // no minimum
+                        a.maxHeight = -1f; // no maximum
+                        a.maxSlope = 35f;
+                        break;
+                    case 3: // Magic Pickup - mid-high elevation, gentle slopes
+                        a.typeName = "Magic Pickup"; 
+                        a.primitive = PrimitiveType.Sphere; 
+                        a.color = new Color(0.7f, 0.2f, 1f); 
+                        a.scale = Vector3.one * 0.5f;
+                        a.minHeight = 0.4f;
+                        a.maxHeight = 0.9f;
+                        a.maxSlope = 25f;
+                        break;
+                    case 4: // Shield - low-mid elevation, flat areas
+                        a.typeName = "Shield"; 
+                        a.primitive = PrimitiveType.Cylinder; 
+                        a.color = new Color(0.4f, 0.6f, 1f); 
+                        a.scale = new Vector3(0.6f, 0.05f, 0.6f);
+                        a.minHeight = 0.1f;
+                        a.maxHeight = 0.5f;
+                        a.maxSlope = 15f; // very flat
+                        break;
+                    case 5: // Trap - any location, any slope (dangerous)
+                        a.typeName = "Trap"; 
+                        a.primitive = PrimitiveType.Cube; 
+                        a.color = new Color(0.4f, 0.2f, 0.1f); 
+                        a.scale = new Vector3(0.6f, 0.2f, 0.6f);
+                        a.minHeight = -1f;
+                        a.maxHeight = -1f;
+                        a.maxSlope = -1f; // use global setting
+                        break;
                 }
             }
 
@@ -225,8 +301,18 @@ public class ArtifactSpawner : MonoBehaviour
                 float nx = (prng != null) ? (float)prng.NextDouble() : Random.value;
                 float nz = (prng != null) ? (float)prng.NextDouble() : Random.value;
 
+                // Check height constraints first (cheapest check)
+                float worldHeight = _terrainData.GetInterpolatedHeight(nx, nz);
+                float normalizedHeight = worldHeight / _terrainSize.y; // Normalize to 0-1 range
+                if (a.minHeight >= 0 && normalizedHeight < a.minHeight)
+                    continue; // below minimum height
+                if (a.maxHeight >= 0 && normalizedHeight > a.maxHeight)
+                    continue; // above maximum height
+
+                // Check slope constraint
                 float steepness = _terrainData.GetSteepness(nx, nz);
-                if (steepness > allowedMaxSteepness)
+                float maxSlopeForType = (a.maxSlope >= 0) ? a.maxSlope : allowedMaxSteepness;
+                if (steepness > maxSlopeForType)
                     continue; // skip steep areas
 
                 Vector3 worldPos = new Vector3(_terrainPos.x + nx * _terrainSize.x, 0f, _terrainPos.z + nz * _terrainSize.z);
@@ -349,23 +435,43 @@ public class ArtifactSpawner : MonoBehaviour
                     NavMeshPath vizPath = new NavMeshPath();
                     if (NavMesh.CalculatePath(playerNavPosition, go.transform.position, NavMesh.AllAreas, vizPath) && vizPath.status == NavMeshPathStatus.PathComplete)
                     {
-                        CreatePathVisualization(go, vizPath);
+                        CreatePathVisualization(go, vizPath, true);
                     }
                 }
 
                 placedPositions.Add(go.transform.position);
                 a.spawned.Add(go);
                 placed++;
+                
+#if UNITY_EDITOR || DEBUG
+                // Log successful placement with details (only in debug builds)
+                string accessibilityInfo = (requireNavMeshAccess && playerNavAvailable) ? "Accessible" : "Not validated";
+                Debug.Log($"ArtifactSpawner: {a.typeName} #{placed} placed at ({worldPos.x:F1}, {worldPos.y:F1}, {worldPos.z:F1}) - {accessibilityInfo}");
+#endif
             }
 
             if (a.spawned.Count < a.minCount)
             {
                 Debug.LogWarning($"ArtifactSpawner: Could only place {a.spawned.Count}/{a.minCount} of {a.typeName} after {attempts} attempts.");
             }
+#if UNITY_EDITOR || DEBUG
+            else
+            {
+                Debug.Log($"ArtifactSpawner: Successfully placed {a.spawned.Count} {a.typeName}(s) (min: {a.minCount})");
+            }
+#endif
         }
 
         // Completed placing all artifact types
-        Debug.Log($"ArtifactSpawner: Spawned artifacts. Total types: {artifactTypes.Length}.");
+        int totalPlaced = 0;
+        foreach (var a in artifactTypes)
+        {
+            if (a != null && a.spawned != null)
+                totalPlaced += a.spawned.Count;
+        }
+#if UNITY_EDITOR || DEBUG
+        Debug.Log($"ArtifactSpawner: Artifact spawning complete. Total artifacts placed: {totalPlaced} across {artifactTypes.Length} types.");
+#endif
     }
 
     [ContextMenu("Refresh Path Visualizations")]
@@ -426,7 +532,7 @@ public class ArtifactSpawner : MonoBehaviour
                     {
                         // remove old
                         if (existing != null) Object.DestroyImmediate(existing.gameObject);
-                        CreatePathVisualization(go, path);
+                        CreatePathVisualization(go, path, true);
                     }
                     else
                     {
@@ -461,7 +567,7 @@ public class ArtifactSpawner : MonoBehaviour
     }
 
     // Create a LineRenderer on the artifact to visualize the nav path (childed to artifact)
-    void CreatePathVisualization(GameObject artifact, NavMeshPath path)
+    void CreatePathVisualization(GameObject artifact, NavMeshPath path, bool isSuccessPath = true)
     {
         if (path == null || path.corners == null || path.corners.Length == 0) return;
 
@@ -479,8 +585,9 @@ public class ArtifactSpawner : MonoBehaviour
         lr.SetPositions(path.corners);
         lr.widthMultiplier = Mathf.Max(0.01f, pathWidth);
         lr.material = pathMaterial != null ? pathMaterial : new Material(Shader.Find("Sprites/Default"));
-        lr.startColor = pathColor;
-        lr.endColor = pathColor;
+        Color pathColorToUse = isSuccessPath ? successPathColor : failedPathColor;
+        lr.startColor = pathColorToUse;
+        lr.endColor = pathColorToUse;
         lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         lr.receiveShadows = false;
         lr.numCapVertices = 2;

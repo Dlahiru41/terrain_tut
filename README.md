@@ -75,7 +75,11 @@ If your terrain is too large and takes forever to traverse:
 ### Core Scripts
 - **`ImprovedTerrainGenerator.cs`**: Procedural terrain height generation using Perlin noise
 - **`TerrainTextureGenerator.cs`**: Applies dynamic textures based on height and slope
-- **`ArtifactSpawner.cs`**: Spawns collectible items with enhanced visuals
+- **`ArtifactSpawner.cs`**: Advanced artifact spawning system with:
+  - 6 unique artifact types with per-type generation rules (height, slope constraints)
+  - NavMesh integration for accessibility validation
+  - Pathfinding visualization with toggle support (Press 'P' key)
+  - Deterministic placement with optional seed
 - **`PlayerVisualEnhancer.cs`**: Improves player appearance and visibility
 
 ### Editor Tools
@@ -109,12 +113,15 @@ Edit `PlayerVisualEnhancer` component:
 ## Controls
 
 - **R key**: Regenerate terrain (in play mode)
+- **P key**: Toggle artifact path visualization on/off
 - **Fire1 button** (left mouse): Alternate terrain edit (legacy mode)
 
 ## Documentation
 
 For detailed information, see:
-- `TERRAIN_SCALING_GUIDE.md` - **NEW!** Complete guide to fixing oversized terrain and setting proper scale
+- `PHASE_3_4_IMPLEMENTATION.md` - **NEW!** Complete implementation details for Phase 3 & 4
+- `ARTIFACT_SYSTEM_GUIDE.md` - **NEW!** Comprehensive artifact system user guide
+- `TERRAIN_SCALING_GUIDE.md` - Complete guide to fixing oversized terrain and setting proper scale
 - `Assets/TERRAIN_ENHANCEMENT_GUIDE.md` - Complete feature documentation
 - Component tooltips in Unity Inspector
 - Context menu options (right-click components)
