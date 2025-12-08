@@ -578,11 +578,49 @@ public class ArtifactSpawner : MonoBehaviour
             Object.DestroyImmediate(existing.gameObject);
         }
 
+        // Interpolate points along the path to follow terrain contours
+        List<Vector3> terrainFollowingPoints = new List<Vector3>();
+        float segmentLength = 0.5f; // Distance between interpolated points (adjust for detail vs performance)
+        
+        for (int i = 0; i < path.corners.Length - 1; i++)
+        {
+            Vector3 start = path.corners[i];
+            Vector3 end = path.corners[i + 1];
+            float distance = Vector3.Distance(start, end);
+            int numSegments = Mathf.Max(1, Mathf.CeilToInt(distance / segmentLength));
+            
+            for (int j = 0; j <= numSegments; j++)
+            {
+                float t = j / (float)numSegments;
+                Vector3 interpolatedPos = Vector3.Lerp(start, end, t);
+                
+                // Sample terrain height at this position
+                if (terrain != null)
+                {
+                    float terrainHeight = terrain.SampleHeight(interpolatedPos) + _terrainPos.y;
+                    interpolatedPos.y = terrainHeight + 0.2f; // Offset slightly above terrain for visibility
+                }
+                
+                terrainFollowingPoints.Add(interpolatedPos);
+            }
+        }
+        
+        // Remove duplicate points at segment boundaries (except first point)
+        List<Vector3> finalPoints = new List<Vector3>();
+        finalPoints.Add(terrainFollowingPoints[0]);
+        for (int i = 1; i < terrainFollowingPoints.Count; i++)
+        {
+            if (Vector3.Distance(terrainFollowingPoints[i], finalPoints[finalPoints.Count - 1]) > 0.01f)
+            {
+                finalPoints.Add(terrainFollowingPoints[i]);
+            }
+        }
+
         GameObject lrObj = new GameObject("PathViz");
         lrObj.transform.SetParent(artifact.transform, false);
         var lr = lrObj.AddComponent<LineRenderer>();
-        lr.positionCount = path.corners.Length;
-        lr.SetPositions(path.corners);
+        lr.positionCount = finalPoints.Count;
+        lr.SetPositions(finalPoints.ToArray());
         lr.widthMultiplier = Mathf.Max(0.01f, pathWidth);
         lr.material = pathMaterial != null ? pathMaterial : new Material(Shader.Find("Sprites/Default"));
         Color pathColorToUse = isSuccessPath ? successPathColor : failedPathColor;
