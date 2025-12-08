@@ -90,10 +90,7 @@ public class ArtifactSpawner : MonoBehaviour
 
     void Update()
     {
-#if UNITY_EDITOR
-        // In edit mode, Update also runs due to [ExecuteAlways], so guard by application state
         if (!Application.isPlaying) return;
-#endif
         
         // Toggle path visualization with keyboard shortcut
         if (Input.GetKeyDown(togglePathVisualizationKey))
@@ -304,6 +301,13 @@ public class ArtifactSpawner : MonoBehaviour
                 float nx = (prng != null) ? (float)prng.NextDouble() : Random.value;
                 float nz = (prng != null) ? (float)prng.NextDouble() : Random.value;
 
+                // Check height constraints first (cheapest check using normalized 0-1 range)
+                float normalizedHeight = _terrainData.GetInterpolatedHeight(nx, nz);
+                if (a.minHeight >= 0 && normalizedHeight < a.minHeight)
+                    continue; // below minimum height
+                if (a.maxHeight >= 0 && normalizedHeight > a.maxHeight)
+                    continue; // above maximum height
+
                 // Check slope constraint
                 float steepness = _terrainData.GetSteepness(nx, nz);
                 float maxSlopeForType = (a.maxSlope >= 0) ? a.maxSlope : allowedMaxSteepness;
@@ -313,13 +317,6 @@ public class ArtifactSpawner : MonoBehaviour
                 Vector3 worldPos = new Vector3(_terrainPos.x + nx * _terrainSize.x, 0f, _terrainPos.z + nz * _terrainSize.z);
                 float height = terrain.SampleHeight(worldPos) + _terrainPos.y;
                 worldPos.y = height;
-                
-                // Check height constraints (normalized 0-1 range)
-                float normalizedHeight = _terrainData.GetInterpolatedHeight(nx, nz);
-                if (a.minHeight >= 0 && normalizedHeight < a.minHeight)
-                    continue; // below minimum height
-                if (a.maxHeight >= 0 && normalizedHeight > a.maxHeight)
-                    continue; // above maximum height
 
                 // Enforce spacing against all placed positions
                 bool tooClose = false;
@@ -445,9 +442,11 @@ public class ArtifactSpawner : MonoBehaviour
                 a.spawned.Add(go);
                 placed++;
                 
-                // Log successful placement with details
+#if UNITY_EDITOR || DEBUG
+                // Log successful placement with details (only in debug builds)
                 string accessibilityInfo = (requireNavMeshAccess && playerNavAvailable) ? "Accessible" : "Not validated";
                 Debug.Log($"ArtifactSpawner: {a.typeName} #{placed} placed at ({worldPos.x:F1}, {worldPos.y:F1}, {worldPos.z:F1}) - {accessibilityInfo}");
+#endif
             }
 
             if (a.spawned.Count < a.minCount)
