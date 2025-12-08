@@ -584,16 +584,17 @@ public class ArtifactSpawner : MonoBehaviour
             Object.DestroyImmediate(existing.gameObject);
         }
 
-        // Interpolate points along the path to follow terrain contours
-        List<Vector3> terrainFollowingPoints = new List<Vector3>();
-        const float minDistanceThreshold = 0.01f; // Minimum distance to consider points as duplicates
-        
         // Terrain is required for proper path following
         if (terrain == null)
         {
             Debug.LogWarning("ArtifactSpawner: Terrain reference is null. Cannot create terrain-following path visualization.");
             return;
         }
+
+        // Interpolate points along the path to follow terrain contours
+        List<Vector3> finalPoints = new List<Vector3>();
+        const float minDistanceThreshold = 0.01f; // Minimum distance to consider points as duplicates
+        const float minDistanceSqr = minDistanceThreshold * minDistanceThreshold; // Use squared distance for performance
         
         for (int i = 0; i < path.corners.Length - 1; i++)
         {
@@ -612,7 +613,11 @@ public class ArtifactSpawner : MonoBehaviour
                 float terrainHeight = terrain.SampleHeight(interpolatedPos) + _terrainPos.y;
                 interpolatedPos.y = terrainHeight + pathHeightOffset;
                 
-                terrainFollowingPoints.Add(interpolatedPos);
+                // Add point only if it's not too close to the previous point (optimization)
+                if (finalPoints.Count == 0 || (interpolatedPos - finalPoints[finalPoints.Count - 1]).sqrMagnitude > minDistanceSqr)
+                {
+                    finalPoints.Add(interpolatedPos);
+                }
             }
         }
         
@@ -622,20 +627,11 @@ public class ArtifactSpawner : MonoBehaviour
             Vector3 lastCorner = path.corners[path.corners.Length - 1];
             float terrainHeight = terrain.SampleHeight(lastCorner) + _terrainPos.y;
             lastCorner.y = terrainHeight + pathHeightOffset;
-            terrainFollowingPoints.Add(lastCorner);
-        }
-        
-        // Remove near-duplicate points for optimization
-        List<Vector3> finalPoints = new List<Vector3>();
-        if (terrainFollowingPoints.Count > 0)
-        {
-            finalPoints.Add(terrainFollowingPoints[0]);
-            for (int i = 1; i < terrainFollowingPoints.Count; i++)
+            
+            // Add only if not too close to the last added point
+            if (finalPoints.Count == 0 || (lastCorner - finalPoints[finalPoints.Count - 1]).sqrMagnitude > minDistanceSqr)
             {
-                if (Vector3.Distance(terrainFollowingPoints[i], finalPoints[finalPoints.Count - 1]) > minDistanceThreshold)
-                {
-                    finalPoints.Add(terrainFollowingPoints[i]);
-                }
+                finalPoints.Add(lastCorner);
             }
         }
 
