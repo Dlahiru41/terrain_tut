@@ -301,8 +301,9 @@ public class ArtifactSpawner : MonoBehaviour
                 float nx = (prng != null) ? (float)prng.NextDouble() : Random.value;
                 float nz = (prng != null) ? (float)prng.NextDouble() : Random.value;
 
-                // Check height constraints first (cheapest check using normalized 0-1 range)
-                float normalizedHeight = _terrainData.GetInterpolatedHeight(nx, nz);
+                // Check height constraints first (cheapest check)
+                float worldHeight = _terrainData.GetInterpolatedHeight(nx, nz);
+                float normalizedHeight = worldHeight / _terrainSize.y; // Normalize to 0-1 range
                 if (a.minHeight >= 0 && normalizedHeight < a.minHeight)
                     continue; // below minimum height
                 if (a.maxHeight >= 0 && normalizedHeight > a.maxHeight)
@@ -453,10 +454,12 @@ public class ArtifactSpawner : MonoBehaviour
             {
                 Debug.LogWarning($"ArtifactSpawner: Could only place {a.spawned.Count}/{a.minCount} of {a.typeName} after {attempts} attempts.");
             }
+#if UNITY_EDITOR || DEBUG
             else
             {
                 Debug.Log($"ArtifactSpawner: Successfully placed {a.spawned.Count} {a.typeName}(s) (min: {a.minCount})");
             }
+#endif
         }
 
         // Completed placing all artifact types
@@ -466,7 +469,9 @@ public class ArtifactSpawner : MonoBehaviour
             if (a != null && a.spawned != null)
                 totalPlaced += a.spawned.Count;
         }
+#if UNITY_EDITOR || DEBUG
         Debug.Log($"ArtifactSpawner: Artifact spawning complete. Total artifacts placed: {totalPlaced} across {artifactTypes.Length} types.");
+#endif
     }
 
     [ContextMenu("Refresh Path Visualizations")]
