@@ -71,6 +71,12 @@ public class ArtifactSpawner : MonoBehaviour
     public float navMeshSampleDistance = 2.0f;
     [Tooltip("Keyboard key to toggle path visualization on/off")]
     public KeyCode togglePathVisualizationKey = KeyCode.P;
+    [Tooltip("Distance between interpolated points on the path (smaller = smoother path, larger = better performance)")]
+    [Range(0.1f, 2.0f)]
+    public float pathSegmentLength = 0.5f;
+    [Tooltip("Height offset above terrain for path visualization (prevents z-fighting with terrain)")]
+    [Range(0.05f, 1.0f)]
+    public float pathHeightOffset = 0.2f;
 
     private TerrainData _terrainData;
     private Vector3 _terrainPos;
@@ -578,11 +584,62 @@ public class ArtifactSpawner : MonoBehaviour
             Object.DestroyImmediate(existing.gameObject);
         }
 
+        // Terrain is required for proper path following
+        if (terrain == null)
+        {
+            Debug.LogWarning("ArtifactSpawner: Terrain reference is null. Cannot create terrain-following path visualization.");
+            return;
+        }
+
+        // Interpolate points along the path to follow terrain contours
+        List<Vector3> finalPoints = new List<Vector3>();
+        const float minDistanceThreshold = 0.01f; // Minimum distance to consider points as duplicates
+        const float minDistanceSqr = minDistanceThreshold * minDistanceThreshold; // Use squared distance for performance
+        
+        for (int i = 0; i < path.corners.Length - 1; i++)
+        {
+            Vector3 start = path.corners[i];
+            Vector3 end = path.corners[i + 1];
+            float distance = Vector3.Distance(start, end);
+            int numSegments = Mathf.Max(1, Mathf.CeilToInt(distance / pathSegmentLength));
+            
+            // Add interpolated points along this segment (excluding the endpoint to avoid duplicates)
+            for (int j = 0; j < numSegments; j++)
+            {
+                float t = j / (float)numSegments;
+                Vector3 interpolatedPos = Vector3.Lerp(start, end, t);
+                
+                // Sample terrain height at this position
+                float terrainHeight = terrain.SampleHeight(interpolatedPos) + _terrainPos.y;
+                interpolatedPos.y = terrainHeight + pathHeightOffset;
+                
+                // Add point only if it's not too close to the previous point (optimization)
+                if (finalPoints.Count == 0 || (interpolatedPos - finalPoints[finalPoints.Count - 1]).sqrMagnitude > minDistanceSqr)
+                {
+                    finalPoints.Add(interpolatedPos);
+                }
+            }
+        }
+        
+        // Add the final corner point
+        if (path.corners.Length > 0)
+        {
+            Vector3 lastCorner = path.corners[path.corners.Length - 1];
+            float terrainHeight = terrain.SampleHeight(lastCorner) + _terrainPos.y;
+            lastCorner.y = terrainHeight + pathHeightOffset;
+            
+            // Add only if not too close to the last added point
+            if (finalPoints.Count == 0 || (lastCorner - finalPoints[finalPoints.Count - 1]).sqrMagnitude > minDistanceSqr)
+            {
+                finalPoints.Add(lastCorner);
+            }
+        }
+
         GameObject lrObj = new GameObject("PathViz");
         lrObj.transform.SetParent(artifact.transform, false);
         var lr = lrObj.AddComponent<LineRenderer>();
-        lr.positionCount = path.corners.Length;
-        lr.SetPositions(path.corners);
+        lr.positionCount = finalPoints.Count;
+        lr.SetPositions(finalPoints.ToArray());
         lr.widthMultiplier = Mathf.Max(0.01f, pathWidth);
         lr.material = pathMaterial != null ? pathMaterial : new Material(Shader.Find("Sprites/Default"));
         Color pathColorToUse = isSuccessPath ? successPathColor : failedPathColor;
