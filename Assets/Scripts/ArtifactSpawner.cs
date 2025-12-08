@@ -588,6 +588,13 @@ public class ArtifactSpawner : MonoBehaviour
         List<Vector3> terrainFollowingPoints = new List<Vector3>();
         const float minDistanceThreshold = 0.01f; // Minimum distance to consider points as duplicates
         
+        // Terrain is required for proper path following
+        if (terrain == null)
+        {
+            Debug.LogWarning("ArtifactSpawner: Terrain reference is null. Cannot create terrain-following path visualization.");
+            return;
+        }
+        
         for (int i = 0; i < path.corners.Length - 1; i++)
         {
             Vector3 start = path.corners[i];
@@ -595,37 +602,40 @@ public class ArtifactSpawner : MonoBehaviour
             float distance = Vector3.Distance(start, end);
             int numSegments = Mathf.Max(1, Mathf.CeilToInt(distance / pathSegmentLength));
             
-            for (int j = 0; j <= numSegments; j++)
+            // Add interpolated points along this segment (excluding the endpoint to avoid duplicates)
+            for (int j = 0; j < numSegments; j++)
             {
                 float t = j / (float)numSegments;
                 Vector3 interpolatedPos = Vector3.Lerp(start, end, t);
                 
                 // Sample terrain height at this position
-                if (terrain != null)
-                {
-                    float terrainHeight = terrain.SampleHeight(interpolatedPos) + _terrainPos.y;
-                    interpolatedPos.y = terrainHeight + pathHeightOffset;
-                }
+                float terrainHeight = terrain.SampleHeight(interpolatedPos) + _terrainPos.y;
+                interpolatedPos.y = terrainHeight + pathHeightOffset;
                 
                 terrainFollowingPoints.Add(interpolatedPos);
             }
         }
         
-        // Safety check: ensure we have points to work with
-        if (terrainFollowingPoints.Count == 0)
+        // Add the final corner point
+        if (path.corners.Length > 0)
         {
-            Debug.LogWarning("ArtifactSpawner: No points generated for path visualization.");
-            return;
+            Vector3 lastCorner = path.corners[path.corners.Length - 1];
+            float terrainHeight = terrain.SampleHeight(lastCorner) + _terrainPos.y;
+            lastCorner.y = terrainHeight + pathHeightOffset;
+            terrainFollowingPoints.Add(lastCorner);
         }
         
-        // Remove duplicate points at segment boundaries (except first point)
+        // Remove near-duplicate points for optimization
         List<Vector3> finalPoints = new List<Vector3>();
-        finalPoints.Add(terrainFollowingPoints[0]);
-        for (int i = 1; i < terrainFollowingPoints.Count; i++)
+        if (terrainFollowingPoints.Count > 0)
         {
-            if (Vector3.Distance(terrainFollowingPoints[i], finalPoints[finalPoints.Count - 1]) > minDistanceThreshold)
+            finalPoints.Add(terrainFollowingPoints[0]);
+            for (int i = 1; i < terrainFollowingPoints.Count; i++)
             {
-                finalPoints.Add(terrainFollowingPoints[i]);
+                if (Vector3.Distance(terrainFollowingPoints[i], finalPoints[finalPoints.Count - 1]) > minDistanceThreshold)
+                {
+                    finalPoints.Add(terrainFollowingPoints[i]);
+                }
             }
         }
 
