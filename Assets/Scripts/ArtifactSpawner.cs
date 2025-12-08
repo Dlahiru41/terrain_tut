@@ -37,6 +37,11 @@ public class ArtifactSpawner : MonoBehaviour
     [Tooltip("Seed used for deterministic placement when Use Seed is enabled.")]
     public int seed;
 
+    [Header("Scaling")]
+    [Tooltip("Artifact scale relative to the terrain horizontal size. For example, 0.01 = 1% of terrain size.")]
+    [Min(0.00001f)]
+    public float scaleFactor = 0.01f; // 1% of terrain size
+
     [Header("NavMesh / Accessibility")]
     [Tooltip("If enabled, the spawner will only place artifacts that are reachable by the player via the NavMesh.")]
     public bool requireNavMeshAccess;
@@ -265,14 +270,19 @@ public class ArtifactSpawner : MonoBehaviour
                 // Create primitive visual object
                 GameObject go = GameObject.CreatePrimitive(a.primitive);
                 go.name = $"Artifact_{a.typeName}_{placed + 1}";
-                go.transform.position = worldPos;
 
+                // Compute scale relative to terrain horizontal size.
+                // Use the larger of X/Z so artifacts remain proportionate on rectangular terrains.
+                float terrainHorizontalSize = Mathf.Max(0.00001f, Mathf.Max(_terrainSize.x, _terrainSize.z));
+                Vector3 finalScale = a.scale * terrainHorizontalSize * scaleFactor;
+
+                // Apply scale first, then position the artifact so its pivot sits on the terrain correctly
+                go.transform.localScale = finalScale;
                 // position pivot so object sits on terrain properly (approximate using bounds)
                 // move up by half the object's local Y size to avoid clipping
-                float yOffset = (a.scale.y * 0.5f);
-                go.transform.position += new Vector3(0f, yOffset, 0f);
+                float yOffset = finalScale.y * 0.5f;
+                go.transform.position = worldPos + new Vector3(0f, yOffset, 0f);
 
-                go.transform.localScale = a.scale;
                 float rotY = (prng != null) ? (float)(prng.NextDouble() * 360.0) : Random.Range(0f, 360f);
                 go.transform.rotation = Quaternion.Euler(0f, rotY, 0f);
 
